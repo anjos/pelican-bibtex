@@ -19,6 +19,29 @@ from pelican import signals
 __version__ = '0.2.1'
 
 
+from pybtex.style.formatting.plain import Style as BaseStyle
+from pybtex.style.formatting import toplevel
+
+from pybtex.style.template import words, sentence, tag, field, optional_field
+date = words[optional_field('month'), field('year')]
+
+
+class AugmentedPlainStyle(BaseStyle):
+    """
+    pybtex style that supports patents
+    """
+
+    def format_patent(self, e):
+        template = toplevel[
+            sentence[self.format_names('author')],
+            self.format_title(e, 'title'),
+            sentence(capfirst=False)[
+                tag('emph')[field('number')],
+                date],
+        ]
+        return template.format_data(e)
+
+
 def add_publications(generator):
     """
     Populates context with a list of BibTeX publications.
@@ -45,7 +68,6 @@ def add_publications(generator):
         from pybtex.database.output.bibtex import Writer
         from pybtex.database import BibliographyData, PybtexError
         from pybtex.backends import html
-        from pybtex.style.formatting import plain
     except ImportError:
         logger.warn('`pelican_bibtex` failed to load dependency `pybtex`')
         return
@@ -62,7 +84,7 @@ def add_publications(generator):
     publications = []
 
     # format entries
-    plain_style = plain.Style()
+    plain_style = AugmentedPlainStyle()
     html_backend = html.Backend()
     formatted_entries = plain_style.format_entries(bibdata_all.entries.values())
 
